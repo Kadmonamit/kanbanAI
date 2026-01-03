@@ -1,0 +1,2108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board - AI Powered</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-elevated: #1c2128;
+            --border-color: #30363d;
+            --border-light: #3d444d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --accent-pink: #db61a2;
+            --accent-cyan: #39c5cf;
+            --accent-yellow: #f0c000;
+            
+            --column-todo: #388bfd;
+            --column-progress: #a371f7;
+            --column-review: #d29922;
+            --column-done: #3fb950;
+            
+            --priority-high: #f85149;
+            --priority-medium: #d29922;
+            --priority-low: #3fb950;
+            
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+            
+            --transition-fast: 0.15s ease;
+            --transition-medium: 0.25s ease;
+            
+            --chat-width: 380px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Main Layout */
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: margin-right var(--transition-medium);
+        }
+
+        .main-content.chat-open {
+            margin-right: var(--chat-width);
+        }
+
+        /* Header */
+        .header {
+            padding: 20px 28px;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .logo h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .project-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .project-selector:hover {
+            border-color: var(--accent-blue);
+            background: var(--bg-elevated);
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 260px;
+            transition: all var(--transition-fast);
+        }
+
+        .search-box:focus-within {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .search-box input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .icon-btn:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-blue);
+            background: var(--bg-elevated);
+        }
+
+        .icon-btn.active {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-color: transparent;
+            color: white;
+        }
+
+        .add-task-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .add-task-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Toolbar */
+        .toolbar {
+            padding: 16px 28px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .filter-chip:hover {
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+
+        .filter-chip.active {
+            background: rgba(88, 166, 255, 0.15);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .filter-chip .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .view-toggle {
+            margin-left: auto;
+            display: flex;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .view-toggle button {
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .view-toggle button.active {
+            background: var(--accent-blue);
+            color: white;
+        }
+
+        .view-toggle button:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        /* Board */
+        .board-container {
+            flex: 1;
+            padding: 24px 28px;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .board {
+            display: flex;
+            gap: 20px;
+            height: 100%;
+            min-width: min-content;
+        }
+
+        .column {
+            flex-shrink: 0;
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            max-height: 100%;
+        }
+
+        .column-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .column-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .column-indicator {
+            width: 4px;
+            height: 20px;
+            border-radius: 2px;
+        }
+
+        .column-name {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .column-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            background: var(--bg-tertiary);
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .column-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .column-action-btn {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .column-action-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .column-tasks {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .column-tasks::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .column-tasks::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .column-tasks::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .column-footer {
+            padding: 12px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .add-card-btn {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .add-card-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        /* Task Cards */
+        .task-card {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            cursor: grab;
+            transition: all var(--transition-fast);
+            position: relative;
+        }
+
+        .task-card:hover {
+            border-color: var(--border-light);
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .task-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .task-id {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--bg-tertiary);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .task-priority {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .task-priority.high { background: var(--priority-high); box-shadow: 0 0 6px var(--priority-high); }
+        .task-priority.medium { background: var(--priority-medium); box-shadow: 0 0 6px var(--priority-medium); }
+        .task-priority.low { background: var(--priority-low); box-shadow: 0 0 6px var(--priority-low); }
+
+        .task-title {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.4;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .task-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .task-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .task-tag {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .task-tag.feature { background: rgba(88, 166, 255, 0.2); color: var(--accent-blue); }
+        .task-tag.bug { background: rgba(248, 81, 73, 0.2); color: var(--accent-red); }
+        .task-tag.enhancement { background: rgba(163, 113, 247, 0.2); color: var(--accent-purple); }
+        .task-tag.documentation { background: rgba(57, 197, 207, 0.2); color: var(--accent-cyan); }
+        .task-tag.design { background: rgba(219, 97, 162, 0.2); color: var(--accent-pink); }
+
+        .task-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .task-assignees {
+            display: flex;
+        }
+
+        .assignee {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 2px solid var(--bg-elevated);
+            margin-right: -8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .task-due {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .task-due.overdue {
+            color: var(--accent-red);
+        }
+
+        .task-due.soon {
+            color: var(--accent-orange);
+        }
+
+        .task-progress {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .progress-bar {
+            height: 4px;
+            background: var(--bg-tertiary);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-bottom: 6px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width var(--transition-medium);
+        }
+
+        .progress-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .subtasks-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 0;
+            margin-top: 8px;
+        }
+
+        .subtasks-toggle:hover {
+            color: var(--accent-blue);
+        }
+
+        .subtasks-list {
+            margin-top: 8px;
+            display: none;
+        }
+
+        .subtasks-list.expanded {
+            display: block;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .subtask-checkbox {
+            width: 14px;
+            height: 14px;
+            border: 1px solid var(--border-light);
+            border-radius: 3px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-fast);
+        }
+
+        .subtask-checkbox.checked {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .subtask-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 10px;
+        }
+
+        .subtask-item.completed {
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        /* AI Chat Panel */
+        .chat-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: var(--chat-width);
+            height: 100vh;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transform: translateX(100%);
+            transition: transform var(--transition-medium);
+            z-index: 100;
+        }
+
+        .chat-panel.open {
+            transform: translateX(0);
+        }
+
+        .chat-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .chat-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .chat-title-text h3 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .chat-title-text span {
+            font-size: 12px;
+            color: var(--accent-green);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .chat-title-text span::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: var(--accent-green);
+            border-radius: 50%;
+        }
+
+        .chat-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .chat-close:hover {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .chat-suggestions {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .suggestions-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .suggestion-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .suggestion-chip {
+            padding: 6px 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .suggestion-chip:hover {
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+            background: rgba(163, 113, 247, 0.1);
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .message {
+            max-width: 90%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            animation: messageIn 0.3s ease;
+        }
+
+        @keyframes messageIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.assistant .message-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .message-action-btn {
+            padding: 6px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .message-action-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border-radius: 16px;
+            border-bottom-left-radius: 4px;
+            align-self: flex-start;
+            display: none;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            animation: typingBounce 1.4s ease-in-out infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        .chat-input-container {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 12px;
+            transition: all var(--transition-fast);
+        }
+
+        .chat-input-wrapper:focus-within {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 3px rgba(163, 113, 247, 0.15);
+        }
+
+        .chat-input {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            resize: none;
+            max-height: 120px;
+            line-height: 1.5;
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .chat-send-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .chat-send-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(163, 113, 247, 0.4);
+        }
+
+        .chat-send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-medium);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 520px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform var(--transition-medium);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-tertiary);
+            border: none;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .modal-close:hover {
+            background: var(--accent-red);
+            color: white;
+        }
+
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            transition: all var(--transition-fast);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+
+        .modal-footer {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Drag & Drop States */
+        .column.drag-over .column-tasks {
+            background: rgba(88, 166, 255, 0.05);
+            border: 2px dashed var(--accent-blue);
+            border-radius: 8px;
+        }
+
+        .drop-indicator {
+            height: 3px;
+            background: var(--accent-blue);
+            border-radius: 2px;
+            margin: 5px 0;
+            display: none;
+        }
+
+        /* Empty State */
+        .empty-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .empty-column svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+
+        .empty-column p {
+            font-size: 13px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .board .column {
+            animation: slideUp 0.4s ease backwards;
+        }
+
+        .board .column:nth-child(1) { animation-delay: 0.05s; }
+        .board .column:nth-child(2) { animation-delay: 0.1s; }
+        .board .column:nth-child(3) { animation-delay: 0.15s; }
+        .board .column:nth-child(4) { animation-delay: 0.2s; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 16px;
+            }
+            
+            .search-box {
+                display: none;
+            }
+            
+            .board-container {
+                padding: 16px;
+            }
+            
+            .column {
+                width: 280px;
+            }
+            
+            .chat-panel {
+                width: 100%;
+            }
+            
+            .main-content.chat-open {
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <div class="logo">
+                        <div class="logo-icon">📋</div>
+                        <h1>Kanban Board</h1>
+                    </div>
+                    <div class="project-selector" onclick="showProjectMenu()">
+                        <span>TFL Camera Development</span>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M6 9l6 6 6-6"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="search-box">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        <input type="text" placeholder="Search tasks..." id="searchInput">
+                    </div>
+                    <button class="icon-btn" title="Notifications">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" id="chatToggle" title="AI Assistant">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </button>
+                    <button class="add-task-btn" onclick="openTaskModal()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        New Task
+                    </button>
+                </div>
+            </header>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="filter-group">
+                    <span class="filter-label">Priority:</span>
+                    <div class="filter-chip active" data-filter="all">All</div>
+                    <div class="filter-chip" data-filter="high">
+                        <span class="dot" style="background: var(--priority-high)"></span>
+                        High
+                    </div>
+                    <div class="filter-chip" data-filter="medium">
+                        <span class="dot" style="background: var(--priority-medium)"></span>
+                        Medium
+                    </div>
+                    <div class="filter-chip" data-filter="low">
+                        <span class="dot" style="background: var(--priority-low)"></span>
+                        Low
+                    </div>
+                </div>
+                <div class="view-toggle">
+                    <button class="active">Board</button>
+                    <button>List</button>
+                    <button>Timeline</button>
+                </div>
+            </div>
+
+            <!-- Board -->
+            <div class="board-container">
+                <div class="board" id="board">
+                    <!-- Columns will be rendered by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Chat Panel -->
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <div class="chat-avatar">🤖</div>
+                    <div class="chat-title-text">
+                        <h3>AI Assistant</h3>
+                        <span>Online</span>
+                    </div>
+                </div>
+                <button class="chat-close" id="chatClose">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="chat-suggestions">
+                <div class="suggestions-title">Quick Actions</div>
+                <div class="suggestion-chips">
+                    <div class="suggestion-chip" onclick="sendSuggestion('Create a new task')">➕ Create task</div>
+                    <div class="suggestion-chip" onclick="sendSuggestion('Show overdue tasks')">⏰ Overdue tasks</div>
+                    <div class="suggestion-chip" onclick="sendSuggestion('Summarize progress')">📊 Progress summary</div>
+                    <div class="suggestion-chip" onclick="sendSuggestion('Help me prioritize')">🎯 Prioritize</div>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    Hello! I'm your AI assistant for this Kanban board. I can help you:
+                    <br><br>
+                    • Create and manage tasks<br>
+                    • Track progress and deadlines<br>
+                    • Analyze workload distribution<br>
+                    • Suggest task priorities
+                    <br><br>
+                    How can I help you today?
+                </div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <textarea 
+                        class="chat-input" 
+                        id="chatInput" 
+                        placeholder="Ask me anything about your tasks..."
+                        rows="1"
+                    ></textarea>
+                    <button class="chat-send-btn" id="chatSend">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div class="modal-overlay" id="taskModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Create New Task</h2>
+                <button class="modal-close" onclick="closeTaskModal()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Task Title</label>
+                    <input type="text" class="form-input" id="taskTitle" placeholder="Enter task title...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input" id="taskDescription" placeholder="Add a description..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="taskStatus">
+                            <option value="todo">To Do</option>
+                            <option value="inProgress">In Progress</option>
+                            <option value="review">Review</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
+                        <select class="form-select" id="taskPriority">
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Due Date</label>
+                        <input type="date" class="form-input" id="taskDueDate">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Tag</label>
+                        <select class="form-select" id="taskTag">
+                            <option value="">None</option>
+                            <option value="feature">Feature</option>
+                            <option value="bug">Bug</option>
+                            <option value="enhancement">Enhancement</option>
+                            <option value="documentation">Documentation</option>
+                            <option value="design">Design</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTaskModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="createTask()">Create Task</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Task Data - This structure is compatible with future Gantt integration
+        let tasks = [
+            {
+                id: 'TASK-001',
+                title: 'Design System Architecture',
+                description: 'Create the foundational design system including color palette, typography, and component library.',
+                status: 'done',
+                priority: 'high',
+                tags: ['design'],
+                assignees: ['AK', 'MR'],
+                dueDate: '2026-01-05',
+                progress: 100,
+                subtasks: [
+                    { id: 'ST-001-1', title: 'Define color palette', completed: true },
+                    { id: 'ST-001-2', title: 'Set up typography scale', completed: true },
+                    { id: 'ST-001-3', title: 'Create component specs', completed: true }
+                ],
+                createdAt: '2025-12-15',
+                startDate: '2025-12-15',
+                endDate: '2026-01-05'
+            },
+            {
+                id: 'TASK-002',
+                title: 'Implement User Authentication',
+                description: 'Build secure authentication system with OAuth2 support and session management.',
+                status: 'inProgress',
+                priority: 'high',
+                tags: ['feature'],
+                assignees: ['JD'],
+                dueDate: '2026-01-10',
+                progress: 65,
+                subtasks: [
+                    { id: 'ST-002-1', title: 'Set up OAuth2 providers', completed: true },
+                    { id: 'ST-002-2', title: 'Implement JWT tokens', completed: true },
+                    { id: 'ST-002-3', title: 'Add session management', completed: false },
+                    { id: 'ST-002-4', title: 'Write security tests', completed: false }
+                ],
+                createdAt: '2025-12-20',
+                startDate: '2025-12-20',
+                endDate: '2026-01-10'
+            },
+            {
+                id: 'TASK-003',
+                title: 'Database Schema Optimization',
+                description: 'Review and optimize database queries, add indexes, and improve query performance.',
+                status: 'inProgress',
+                priority: 'medium',
+                tags: ['enhancement'],
+                assignees: ['SK'],
+                dueDate: '2026-01-08',
+                progress: 40,
+                subtasks: [
+                    { id: 'ST-003-1', title: 'Analyze slow queries', completed: true },
+                    { id: 'ST-003-2', title: 'Add missing indexes', completed: false },
+                    { id: 'ST-003-3', title: 'Optimize JOIN operations', completed: false }
+                ],
+                createdAt: '2025-12-28',
+                startDate: '2025-12-28',
+                endDate: '2026-01-08'
+            },
+            {
+                id: 'TASK-004',
+                title: 'Fix Payment Gateway Bug',
+                description: 'Resolve intermittent failures in payment processing during high traffic periods.',
+                status: 'review',
+                priority: 'high',
+                tags: ['bug'],
+                assignees: ['MR', 'JD'],
+                dueDate: '2026-01-04',
+                progress: 90,
+                subtasks: [
+                    { id: 'ST-004-1', title: 'Reproduce the issue', completed: true },
+                    { id: 'ST-004-2', title: 'Implement fix', completed: true },
+                    { id: 'ST-004-3', title: 'Load testing', completed: false }
+                ],
+                createdAt: '2025-12-30',
+                startDate: '2025-12-30',
+                endDate: '2026-01-04'
+            },
+            {
+                id: 'TASK-005',
+                title: 'API Documentation',
+                description: 'Write comprehensive API documentation using OpenAPI/Swagger specification.',
+                status: 'todo',
+                priority: 'medium',
+                tags: ['documentation'],
+                assignees: ['AK'],
+                dueDate: '2026-01-15',
+                progress: 0,
+                subtasks: [
+                    { id: 'ST-005-1', title: 'Document endpoints', completed: false },
+                    { id: 'ST-005-2', title: 'Add code examples', completed: false },
+                    { id: 'ST-005-3', title: 'Review with team', completed: false }
+                ],
+                createdAt: '2026-01-02',
+                startDate: '2026-01-06',
+                endDate: '2026-01-15'
+            },
+            {
+                id: 'TASK-006',
+                title: 'Mobile Responsive Design',
+                description: 'Ensure all components work seamlessly on mobile devices and tablets.',
+                status: 'todo',
+                priority: 'low',
+                tags: ['design', 'enhancement'],
+                assignees: ['SK', 'AK'],
+                dueDate: '2026-01-20',
+                progress: 0,
+                subtasks: [],
+                createdAt: '2026-01-01',
+                startDate: '2026-01-10',
+                endDate: '2026-01-20'
+            },
+            {
+                id: 'TASK-007',
+                title: 'Set Up CI/CD Pipeline',
+                description: 'Configure automated testing and deployment pipelines using GitHub Actions.',
+                status: 'review',
+                priority: 'medium',
+                tags: ['feature'],
+                assignees: ['JD'],
+                dueDate: '2026-01-06',
+                progress: 80,
+                subtasks: [
+                    { id: 'ST-007-1', title: 'Configure GitHub Actions', completed: true },
+                    { id: 'ST-007-2', title: 'Set up test automation', completed: true },
+                    { id: 'ST-007-3', title: 'Configure deployment', completed: false }
+                ],
+                createdAt: '2025-12-25',
+                startDate: '2025-12-25',
+                endDate: '2026-01-06'
+            },
+            {
+                id: 'TASK-008',
+                title: 'User Analytics Dashboard',
+                description: 'Build a dashboard to visualize user engagement metrics and KPIs.',
+                status: 'todo',
+                priority: 'high',
+                tags: ['feature'],
+                assignees: ['MR'],
+                dueDate: '2026-01-12',
+                progress: 0,
+                subtasks: [
+                    { id: 'ST-008-1', title: 'Design dashboard layout', completed: false },
+                    { id: 'ST-008-2', title: 'Integrate analytics API', completed: false },
+                    { id: 'ST-008-3', title: 'Build chart components', completed: false },
+                    { id: 'ST-008-4', title: 'Add export functionality', completed: false }
+                ],
+                createdAt: '2026-01-02',
+                startDate: '2026-01-05',
+                endDate: '2026-01-12'
+            }
+        ];
+
+        // Column configuration
+        const columns = [
+            { id: 'todo', name: 'To Do', color: 'var(--column-todo)' },
+            { id: 'inProgress', name: 'In Progress', color: 'var(--column-progress)' },
+            { id: 'review', name: 'Review', color: 'var(--column-review)' },
+            { id: 'done', name: 'Done', color: 'var(--column-done)' }
+        ];
+
+        // Assignee colors
+        const assigneeColors = {
+            'AK': '#388bfd',
+            'MR': '#a371f7',
+            'JD': '#3fb950',
+            'SK': '#f0883e'
+        };
+
+        // Current filter
+        let currentFilter = 'all';
+
+        // Initialize board
+        function initBoard() {
+            renderBoard();
+            setupDragAndDrop();
+            setupChatPanel();
+            setupFilters();
+            setupSearch();
+        }
+
+        // Render the board
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            columns.forEach(column => {
+                const columnTasks = tasks.filter(t => {
+                    const matchesStatus = t.status === column.id;
+                    const matchesFilter = currentFilter === 'all' || t.priority === currentFilter;
+                    return matchesStatus && matchesFilter;
+                });
+
+                const columnEl = document.createElement('div');
+                columnEl.className = 'column';
+                columnEl.dataset.columnId = column.id;
+                columnEl.innerHTML = `
+                    <div class="column-header">
+                        <div class="column-title">
+                            <div class="column-indicator" style="background: ${column.color}"></div>
+                            <span class="column-name">${column.name}</span>
+                            <span class="column-count">${columnTasks.length}</span>
+                        </div>
+                        <div class="column-actions">
+                            <button class="column-action-btn" title="More options">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="1"/>
+                                    <circle cx="19" cy="12" r="1"/>
+                                    <circle cx="5" cy="12" r="1"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="column-tasks" data-column="${column.id}">
+                        ${columnTasks.length === 0 ? `
+                            <div class="empty-column">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                                    <path d="M9 12h6M12 9v6"/>
+                                </svg>
+                                <p>No tasks yet</p>
+                            </div>
+                        ` : columnTasks.map(task => renderTaskCard(task)).join('')}
+                    </div>
+                    <div class="column-footer">
+                        <button class="add-card-btn" onclick="openTaskModalWithStatus('${column.id}')">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 5v14M5 12h14"/>
+                            </svg>
+                            Add task
+                        </button>
+                    </div>
+                `;
+
+                board.appendChild(columnEl);
+            });
+        }
+
+        // Render a task card
+        function renderTaskCard(task) {
+            const isOverdue = new Date(task.dueDate) < new Date() && task.status !== 'done';
+            const isSoon = !isOverdue && new Date(task.dueDate) - new Date() < 3 * 24 * 60 * 60 * 1000 && task.status !== 'done';
+            const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+            
+            return `
+                <div class="task-card" draggable="true" data-task-id="${task.id}">
+                    <div class="task-card-header">
+                        <span class="task-id">${task.id}</span>
+                        <span class="task-priority ${task.priority}" title="${task.priority} priority"></span>
+                    </div>
+                    <div class="task-title">${task.title}</div>
+                    ${task.description ? `<div class="task-description">${task.description}</div>` : ''}
+                    ${task.tags.length > 0 ? `
+                        <div class="task-tags">
+                            ${task.tags.map(tag => `<span class="task-tag ${tag}">${tag}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="task-meta">
+                        <div class="task-assignees">
+                            ${task.assignees.map(a => `
+                                <div class="assignee" style="background: ${assigneeColors[a] || '#666'}" title="${a}">
+                                    ${a}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="task-due ${isOverdue ? 'overdue' : ''} ${isSoon ? 'soon' : ''}">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            ${formatDate(task.dueDate)}
+                        </div>
+                    </div>
+                    ${task.subtasks.length > 0 ? `
+                        <div class="task-progress">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${task.progress}%; background: ${getProgressColor(task.progress)}"></div>
+                            </div>
+                            <div class="progress-text">
+                                <span>${completedSubtasks}/${task.subtasks.length} subtasks</span>
+                                <span>${task.progress}%</span>
+                            </div>
+                            <button class="subtasks-toggle" onclick="toggleSubtasks(this)">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M6 9l6 6 6-6"/>
+                                </svg>
+                                Show subtasks
+                            </button>
+                            <div class="subtasks-list">
+                                ${task.subtasks.map(st => `
+                                    <div class="subtask-item ${st.completed ? 'completed' : ''}" data-subtask-id="${st.id}">
+                                        <div class="subtask-checkbox ${st.completed ? 'checked' : ''}" onclick="toggleSubtaskComplete('${task.id}', '${st.id}')"></div>
+                                        <span>${st.title}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        // Format date
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            if (date.toDateString() === today.toDateString()) return 'Today';
+            if (date.toDateString() === tomorrow.toDateString()) return 'Tomorrow';
+            
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        // Get progress color
+        function getProgressColor(progress) {
+            if (progress >= 80) return 'var(--accent-green)';
+            if (progress >= 50) return 'var(--accent-blue)';
+            if (progress >= 25) return 'var(--accent-orange)';
+            return 'var(--accent-red)';
+        }
+
+        // Toggle subtasks visibility
+        function toggleSubtasks(btn) {
+            const subtasksList = btn.nextElementSibling;
+            subtasksList.classList.toggle('expanded');
+            btn.innerHTML = subtasksList.classList.contains('expanded') ? `
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 15l-6-6-6 6"/>
+                </svg>
+                Hide subtasks
+            ` : `
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+                Show subtasks
+            `;
+        }
+
+        // Toggle subtask completion
+        function toggleSubtaskComplete(taskId, subtaskId) {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                const subtask = task.subtasks.find(st => st.id === subtaskId);
+                if (subtask) {
+                    subtask.completed = !subtask.completed;
+                    // Recalculate progress
+                    const completed = task.subtasks.filter(st => st.completed).length;
+                    task.progress = Math.round((completed / task.subtasks.length) * 100);
+                    renderBoard();
+                    setupDragAndDrop();
+                }
+            }
+        }
+
+        // Drag and Drop
+        function setupDragAndDrop() {
+            const cards = document.querySelectorAll('.task-card');
+            const columns = document.querySelectorAll('.column-tasks');
+
+            cards.forEach(card => {
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+            });
+
+            columns.forEach(column => {
+                column.addEventListener('dragover', handleDragOver);
+                column.addEventListener('dragleave', handleDragLeave);
+                column.addEventListener('drop', handleDrop);
+            });
+        }
+
+        let draggedCard = null;
+
+        function handleDragStart(e) {
+            draggedCard = e.target;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            document.querySelectorAll('.column').forEach(col => col.classList.remove('drag-over'));
+            draggedCard = null;
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.closest('.column').classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.closest('.column').classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const targetColumn = e.currentTarget;
+            const newStatus = targetColumn.dataset.column;
+            
+            if (draggedCard) {
+                const taskId = draggedCard.dataset.taskId;
+                const task = tasks.find(t => t.id === taskId);
+                if (task && task.status !== newStatus) {
+                    task.status = newStatus;
+                    if (newStatus === 'done') {
+                        task.progress = 100;
+                        task.subtasks.forEach(st => st.completed = true);
+                    }
+                    renderBoard();
+                    setupDragAndDrop();
+                    
+                    // Notify chat about the move
+                    addChatMessage(`Task "${task.title}" moved to ${columns.find(c => c.id === newStatus).name}`, 'assistant');
+                }
+            }
+            
+            targetColumn.closest('.column').classList.remove('drag-over');
+        }
+
+        // Modal functions
+        function openTaskModal() {
+            document.getElementById('taskModal').classList.add('active');
+        }
+
+        function openTaskModalWithStatus(status) {
+            document.getElementById('taskStatus').value = status;
+            openTaskModal();
+        }
+
+        function closeTaskModal() {
+            document.getElementById('taskModal').classList.remove('active');
+            // Reset form
+            document.getElementById('taskTitle').value = '';
+            document.getElementById('taskDescription').value = '';
+            document.getElementById('taskStatus').value = 'todo';
+            document.getElementById('taskPriority').value = 'medium';
+            document.getElementById('taskDueDate').value = '';
+            document.getElementById('taskTag').value = '';
+        }
+
+        function createTask() {
+            const title = document.getElementById('taskTitle').value.trim();
+            if (!title) {
+                alert('Please enter a task title');
+                return;
+            }
+
+            const taskNum = tasks.length + 1;
+            const newTask = {
+                id: `TASK-${String(taskNum).padStart(3, '0')}`,
+                title: title,
+                description: document.getElementById('taskDescription').value.trim(),
+                status: document.getElementById('taskStatus').value,
+                priority: document.getElementById('taskPriority').value,
+                tags: document.getElementById('taskTag').value ? [document.getElementById('taskTag').value] : [],
+                assignees: [],
+                dueDate: document.getElementById('taskDueDate').value || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                progress: 0,
+                subtasks: [],
+                createdAt: new Date().toISOString().split('T')[0],
+                startDate: new Date().toISOString().split('T')[0],
+                endDate: document.getElementById('taskDueDate').value || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            };
+
+            tasks.push(newTask);
+            renderBoard();
+            setupDragAndDrop();
+            closeTaskModal();
+            
+            addChatMessage(`New task "${title}" created successfully!`, 'assistant');
+        }
+
+        // Chat Panel
+        function setupChatPanel() {
+            const chatToggle = document.getElementById('chatToggle');
+            const chatClose = document.getElementById('chatClose');
+            const chatPanel = document.getElementById('chatPanel');
+            const mainContent = document.getElementById('mainContent');
+            const chatInput = document.getElementById('chatInput');
+            const chatSend = document.getElementById('chatSend');
+
+            chatToggle.addEventListener('click', () => {
+                chatPanel.classList.add('open');
+                mainContent.classList.add('chat-open');
+                chatToggle.classList.add('active');
+            });
+
+            chatClose.addEventListener('click', () => {
+                chatPanel.classList.remove('open');
+                mainContent.classList.remove('chat-open');
+                chatToggle.classList.remove('active');
+            });
+
+            chatSend.addEventListener('click', sendMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Auto-resize textarea
+            chatInput.addEventListener('input', () => {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+            });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            addChatMessage(message, 'user');
+            input.value = '';
+            input.style.height = 'auto';
+
+            // Show typing indicator
+            document.getElementById('typingIndicator').classList.add('active');
+
+            // Simulate AI response
+            setTimeout(() => {
+                document.getElementById('typingIndicator').classList.remove('active');
+                const response = generateAIResponse(message);
+                addChatMessage(response, 'assistant');
+            }, 1000 + Math.random() * 1000);
+        }
+
+        function sendSuggestion(text) {
+            document.getElementById('chatInput').value = text;
+            sendMessage();
+        }
+
+        function addChatMessage(text, type) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${type}`;
+            messageEl.innerHTML = text;
+            messagesContainer.appendChild(messageEl);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function generateAIResponse(message) {
+            const lowerMessage = message.toLowerCase();
+
+            // Progress summary
+            if (lowerMessage.includes('progress') || lowerMessage.includes('summary') || lowerMessage.includes('status')) {
+                const todoCount = tasks.filter(t => t.status === 'todo').length;
+                const inProgressCount = tasks.filter(t => t.status === 'inProgress').length;
+                const reviewCount = tasks.filter(t => t.status === 'review').length;
+                const doneCount = tasks.filter(t => t.status === 'done').length;
+                const total = tasks.length;
+                const completionRate = Math.round((doneCount / total) * 100);
+
+                return `📊 <strong>Project Progress Summary</strong><br><br>
+                    📋 To Do: ${todoCount} tasks<br>
+                    🔄 In Progress: ${inProgressCount} tasks<br>
+                    👀 In Review: ${reviewCount} tasks<br>
+                    ✅ Completed: ${doneCount} tasks<br><br>
+                    Overall completion rate: <strong>${completionRate}%</strong><br><br>
+                    ${completionRate < 50 ? '💡 Consider focusing on tasks in progress before starting new ones.' : '🎉 Great progress! Keep up the momentum!'}`;
+            }
+
+            // Overdue tasks
+            if (lowerMessage.includes('overdue') || lowerMessage.includes('late') || lowerMessage.includes('deadline')) {
+                const today = new Date();
+                const overdueTasks = tasks.filter(t => new Date(t.dueDate) < today && t.status !== 'done');
+                
+                if (overdueTasks.length === 0) {
+                    return '✅ <strong>No overdue tasks!</strong><br><br>All tasks are on schedule. Great job managing deadlines!';
+                }
+
+                return `⚠️ <strong>Overdue Tasks (${overdueTasks.length})</strong><br><br>
+                    ${overdueTasks.map(t => `• <strong>${t.id}</strong>: ${t.title} (Due: ${formatDate(t.dueDate)})`).join('<br>')}
+                    <br><br>💡 I recommend prioritizing these tasks immediately.`;
+            }
+
+            // Prioritize
+            if (lowerMessage.includes('prioritize') || lowerMessage.includes('priority') || lowerMessage.includes('important')) {
+                const highPriority = tasks.filter(t => t.priority === 'high' && t.status !== 'done');
+                
+                return `🎯 <strong>Priority Recommendations</strong><br><br>
+                    <strong>High Priority Tasks (${highPriority.length}):</strong><br>
+                    ${highPriority.map(t => `• ${t.title} (${t.status === 'todo' ? 'Not started' : t.progress + '% complete'})`).join('<br>')}
+                    <br><br>💡 Focus on completing high-priority tasks first, especially those in "In Progress" status.`;
+            }
+
+            // Create task
+            if (lowerMessage.includes('create') && lowerMessage.includes('task')) {
+                return `To create a new task, I can help you with that! Click the "New Task" button in the header, or tell me the details:<br><br>
+                    • What should the task title be?<br>
+                    • What priority level? (high/medium/low)<br>
+                    • When is it due?<br><br>
+                    <div class="message-actions">
+                        <button class="message-action-btn" onclick="openTaskModal()">Open Task Form</button>
+                    </div>`;
+            }
+
+            // Default responses
+            const responses = [
+                `I understand you're asking about "${message}". I can help you with task management, progress tracking, and prioritization. What specific information do you need?`,
+                `Thanks for your question! I'm here to help manage your Kanban board. You can ask me about:<br>• Task progress and summaries<br>• Overdue tasks<br>• Priority recommendations<br>• Creating new tasks`,
+                `I'm analyzing your request. For best results, try asking about:<br>• "Show overdue tasks"<br>• "Summarize progress"<br>• "Help me prioritize"<br>• "Create a new task"`
+            ];
+
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        // Filters
+        function setupFilters() {
+            const filterChips = document.querySelectorAll('.filter-chip');
+            filterChips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    filterChips.forEach(c => c.classList.remove('active'));
+                    chip.classList.add('active');
+                    currentFilter = chip.dataset.filter;
+                    renderBoard();
+                    setupDragAndDrop();
+                });
+            });
+        }
+
+        // Search
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                const cards = document.querySelectorAll('.task-card');
+                
+                cards.forEach(card => {
+                    const taskId = card.dataset.taskId;
+                    const task = tasks.find(t => t.id === taskId);
+                    if (task) {
+                        const matches = task.title.toLowerCase().includes(query) ||
+                                       task.description.toLowerCase().includes(query) ||
+                                       task.id.toLowerCase().includes(query);
+                        card.style.display = matches ? '' : 'none';
+                    }
+                });
+            });
+        }
+
+        // Export tasks for Gantt integration
+        function exportTasksForGantt() {
+            return tasks.map(task => ({
+                id: task.id,
+                name: task.title,
+                startDate: task.startDate,
+                endDate: task.endDate,
+                progress: task.progress,
+                status: task.status,
+                priority: task.priority,
+                subtasks: task.subtasks.map(st => ({
+                    id: st.id,
+                    name: st.title,
+                    completed: st.completed
+                }))
+            }));
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', initBoard);
+    </script>
+</body>
+</html>
+

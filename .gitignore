@@ -1,0 +1,23 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Netlify local
+.netlify/
+
+# Node modules (if any)
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Backup files
+*.backup
+*_backup.html
+
